@@ -1,5 +1,5 @@
 requiro
--------
+=======
 Advanced version of require for node.js.
 
 INSTALL
