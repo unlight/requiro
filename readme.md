@@ -31,3 +31,7 @@ INSPIRED BY
 https://github.com/MattiSG/requirewith  
 https://github.com/jaubourg/wires  
 
+CHANGELOG
+---------
+### May 1, 2015
+- first release  
