@@ -1,6 +1,18 @@
 requiro
 -------
-Advanced version of require for node.js.  
+Advanced version of require for node.js.
+
+INSTALL
+-------
+`npm install requiro` 
+
+USAGE
+-----
+```js
+var require = require("requiro");
+// Now we can use something like that:
+var conf = require(">/config.{%NODE_ENV%}.js");
+```
 
 SYNTAX
 ------

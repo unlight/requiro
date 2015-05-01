@@ -1,6 +1,6 @@
 var test = require("tapef");
-var r = require("../");
-var rr = r._resolveRoute;
+var require = require("../");
+var rr = require._resolveRoute;
 var pathResolve = require("path").resolve;
 
 test("current working directory", function (t) {
