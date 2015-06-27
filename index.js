@@ -21,17 +21,17 @@ function currentWorkingDirectory(path) {
 }
 
 var variableParsers = {
-	"%": function(path, name, nStart, nEnd) {
+	"%": function (path, name, nStart, nEnd) {
 		if (name.slice(-1) === "%") {
 			name = name.slice(0, -1);
 		}
 		var result = process.env[name];
 		return result;
 	},
-	"#": function(path, name, nStart, nEnd) {
-		var result = config(name);
-		return result;
-	}
+//	"#": function (path, name, nStart, nEnd) {
+//		var result = config(name);
+//		return result;
+//	}
 };
 
 function setVariables(path, position) {
@@ -67,6 +67,9 @@ function setVariables(path, position) {
 
 
 function resolveRoute(path) {
+	if (typeof settings.map[path] === "string") {
+		path = settings.map[path];
+	}
 	var char1 = path.slice(0, 1);
 	var char2 = path.slice(0, 2);
 	if (char1 === ">") {
@@ -75,11 +78,11 @@ function resolveRoute(path) {
 	else if (char2 === ">/") {
 		path = currentWorkingDirectory(path.slice(2));
 	}
-	else if (char1 === "#") {
-		var nPos1 = path.indexOf("/");
-		var name = path.slice(1, nPos1);
-		path = config(name) + path.slice(nPos1);
-	}
+	//	else if (char1 === "#") {
+	//		var nPos1 = path.indexOf("/");
+	//		var name = path.slice(1, nPos1);
+	//		path = config(name) + path.slice(nPos1);
+	//	}
 	
 	//	else if (char1 === ":") {
 	//		throw "Not supported";
@@ -98,27 +101,29 @@ function resolveRoute(path) {
 	return path;
 }
 
-var configuration = {};
+var settings = {};
+settings.configuration = {};
+settings.map = {};
 
-function config(name, value) {
-	if (name === "" && isObject(value)) {
-		var collection = value;
-		for (var key in collection) {
-			if (!collection.hasOwnProperty(key)) continue;
-			setvalue(key, collection[key]);
-		}
-	} else if (isString(name)) {
-		if (value !== undefined) {
-			//configurationData[name] = value;
-			setvalue();
-			throw "Not supported.";
-		}
-		var result = getvalue(name, configuration);
-		return result;
-	} else {
-		throw TypeError("Unknown error.");
-	}
-}
+//function config(name, value) {
+//	if (name === "" && isObject(value)) {
+//		var collection = value;
+//		for (var key in collection) {
+//			if (!collection.hasOwnProperty(key)) continue;
+//			setvalue(key, collection[key]);
+//		}
+//	} else if (isString(name)) {
+//		if (value !== undefined) {
+//			//configurationData[name] = value;
+//			setvalue();
+//			throw "Not supported.";
+//		}
+//		var result = getvalue(name, configuration);
+//		return result;
+//	} else {
+//		throw TypeError("Unknown error.");
+//	}
+//}
 
 function api1(path) {
 	assert(isString(path), "Path must be a string.");
@@ -127,19 +132,33 @@ function api1(path) {
 	return result;
 }
 
-api1._resolveRoute = resolveRoute;
-
 function api2(data) {
-	configuration = merge(configuration, data);
+	settings = merge(settings, data);
 	return api1;
 }
 
-function api(data) {
-	if (isObject(data) || arguments.length === 0) {
+var api3 = {
+	map: function (data, value) {
+		if (isObject(data)) {
+			settings.map = merge(settings.map, data);
+		} else if (isString(data) && isString(value)) {
+			settings.map[data] = value;
+		}
+		return this;
+	}
+//	,
+//	configuration: function (data) {
+//		settings.configuration = merge(settings.configuration, data);
+//	}
+};
+
+
+module.exports = function (data) {
+	if (arguments.length === 0) {
+		return api3;
+	} else if (isObject(data)) {
 		return api2(data);
 	}
 	return api1(data);
-}
-
-module.exports = api;
+};
 module.exports._resolveRoute = resolveRoute;

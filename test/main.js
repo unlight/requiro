@@ -3,14 +3,18 @@ var test = require("tapef");
 var r = require("../");
 var rr = r._resolveRoute;
 var pathResolve = require("path").resolve;
-var configuration = {
-	"modelsPath" : "/app/library/models",
-	"defaultModels": "library/models",
-	"models": {
-		"user": "library/models/user.js"
-	}
+var options = {
+	"configuration": {
+		"modelsPath": "/app/library/models",
+		"defaultModels": "library/models",
+		"models": {
+			"user": "library/models/user.js"
+		}
+	},
+	"map": {}
 };
-var r2 = require("../")(configuration);
+var r2 = require("../")(options);
+var r3 = require("../")();
 
 test("rr must be function", function (t) {
 	t.equal(typeof rr, "function");
