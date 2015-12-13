@@ -2,60 +2,87 @@
 "use strict";
 var assert = require("assert").ok;
 var join = require("path").join;
-//var dirname = require("path").dirname;
-//var fs = require("fs");
 var isString = require("util").isString || function isString(arg) {
 	return typeof arg === "string";
 };
-//var isObject = require("util").isObject || function isObject(arg) {
-//	return typeof arg === "object" && arg !== null;
-//};
+var isObject = require("util").isObject || function isObject(arg) {
+	return typeof arg === "object" && arg !== null;
+};
+var getvalue = require("getvaluer");
+var setvalue = require("setvaluer");
+var merge = require("deepmerge");
 //var stackTrace = require("stack-trace");
-//var getvalue = require("getvaluer");
+//var dirname = require("path").dirname;
+//var fs = require("fs");
 
 function currentWorkingDirectory(path) {
 	var result = join(process.cwd(), path);
 	return result;
 }
 
-//function projectHome(path) {
-//	throw "Not supported";
-//	// What is project home?
-//	return path;
-//}
-
-function setEnvironmentVariables(path) {
-	var nPos1 = path.indexOf("{%");
-	if (nPos1 !== -1) {
-		var nPos2 = path.indexOf("}", nPos1);
-		var name = path.substring(nPos1 + 2, nPos2);
+var variableParsers = {
+	"%": function (path, name, nStart, nEnd) {
 		if (name.slice(-1) === "%") {
 			name = name.slice(0, -1);
 		}
-		var value = process.env[name];
-		if (value !== undefined) {
-			path = path.slice(0, nPos1) + value + path.slice(nPos2 + 1);
+		var result = process.env[name];
+		return result;
+	},
+//	"#": function (path, name, nStart, nEnd) {
+//		var result = config(name);
+//		return result;
+//	}
+};
+
+function setVariables(path, position) {
+	if (position === undefined) {
+		position = 0;
+	}
+	var nStart = path.indexOf("{", position);
+	var nEnd = path.lastIndexOf("}");
+	if (nStart !== -1 && nEnd !== -1) {
+		var nStart1 = nStart + 1;
+		var part = path.substring(nStart1, nEnd);
+		var st = part.indexOf("{");
+		var pe = part.lastIndexOf("}");
+		if (st < pe) {
+			part = setVariables(part, position);
+		} else if (st > pe) {
+			nEnd = pe + nStart1;
+			part = part.slice(0, pe);
 		}
-		// TODO: Uncomment if serveral env vars needed.
-		// nPos1 = path.indexOf("{%");
+		var symbol = part.slice(0, 1);
+		var parser = variableParsers[symbol];
+		if (!parser) {
+			throw new Error("Unsupported syntax.");
+		}
+		var value = parser(path, part.slice(1), nStart, nEnd);
+		if (value != null) {
+			path = path.slice(0, nStart) + value + path.slice(nEnd + 1);
+		}
+		path = setVariables(path, nStart1);
 	}
 	return path;
 }
 
+
 function resolveRoute(path) {
-	assert(isString(path), "path must be a string");
+	if (typeof settings.map[path] === "string") {
+		path = settings.map[path];
+	}
 	var char1 = path.slice(0, 1);
 	var char2 = path.slice(0, 2);
 	if (char1 === ">") {
 		path = currentWorkingDirectory(path.slice(1));
-	} else if (char2 === ">/") {
+	}
+	else if (char2 === ">/") {
 		path = currentWorkingDirectory(path.slice(2));
-	} 
-//	else if (char1 === "#") {
-//		var value = arguments[1];
-//		var name = path.slice(1);
-//		return configuration(name, value);
-//	}
+	}
+	//	else if (char1 === "#") {
+	//		var nPos1 = path.indexOf("/");
+	//		var name = path.slice(1, nPos1);
+	//		path = config(name) + path.slice(nPos1);
+	//	}
 	
 	//	else if (char1 === ":") {
 	//		throw "Not supported";
@@ -70,13 +97,15 @@ function resolveRoute(path) {
 	//	} else if (char2 === "/*") {
 	//		throw "Not supported";
 	//	}
-	path = setEnvironmentVariables(path);
+	path = setVariables(path);
 	return path;
 }
 
-//var configurationData = {};
+var settings = {};
+settings.configuration = {};
+settings.map = {};
 
-//function configuration(name, value) {
+//function config(name, value) {
 //	if (name === "" && isObject(value)) {
 //		var collection = value;
 //		for (var key in collection) {
@@ -87,21 +116,49 @@ function resolveRoute(path) {
 //		if (value !== undefined) {
 //			//configurationData[name] = value;
 //			setvalue();
-//			throw "Not supported.";			
+//			throw "Not supported.";
 //		}
-//		var result = getvalue(name, configurationData);
-//		return result;		
+//		var result = getvalue(name, configuration);
+//		return result;
 //	} else {
 //		throw TypeError("Unknown error.");
 //	}
 //}
 
-function api(path) {
+function api1(path) {
+	assert(isString(path), "Path must be a string.");
 	path = resolveRoute(path);
 	var result = require(path);
 	return result;
 }
 
-module.exports = api;
+function api2(data) {
+	settings = merge(settings, data);
+	return api1;
+}
+
+var api3 = {
+	map: function (data, value) {
+		if (isObject(data)) {
+			settings.map = merge(settings.map, data);
+		} else if (isString(data) && isString(value)) {
+			settings.map[data] = value;
+		}
+		return this;
+	}
+//	,
+//	configuration: function (data) {
+//		settings.configuration = merge(settings.configuration, data);
+//	}
+};
+
+
+module.exports = function (data) {
+	if (arguments.length === 0) {
+		return api3;
+	} else if (isObject(data)) {
+		return api2(data);
+	}
+	return api1(data);
+};
 module.exports._resolveRoute = resolveRoute;
- 
