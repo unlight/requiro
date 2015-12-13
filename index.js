@@ -1,12 +1,12 @@
-/// <reference path="typings/node/node.d.ts"/>
 "use strict";
 var assert = require("assert").ok;
 var join = require("path").join;
 var isString = require("util").isString;
-var pkgUp = require("pkg-up");
-var dirname = require("path").dirname;
 var pathjoin = require("path").join;
+var dirname = require("path").dirname;
+var appRootDir = require("app-root-dir");
 var stackTrace = require("stack-trace");
+var pkgUp = require("pkg-up");
 
 function currentWorkingDirectory(path) {
 	var result = join(process.cwd(), path);
@@ -24,13 +24,17 @@ var variableParsers = {
 };
 
 
-var _pkgDirectory = {};
-
-function packageDirectory(path, from) {
-	if (!_pkgDirectory[from]) {
-		_pkgDirectory[from] = dirname(pkgUp.sync(from));
+var _appRootDirectory;
+function appRootDirectory(path) {
+	if (!_appRootDirectory) {
+		_appRootDirectory = appRootDir.get();
 	}
-	return pathjoin(_pkgDirectory[from], path);
+	return pathjoin(_appRootDirectory, path);
+}
+
+function packageDirectory(path, options) {
+	var pkgDirectory = dirname(pkgUp.sync(options.filedir));
+	return pathjoin(pkgDirectory, path);
 }
 
 function setVariables(path, position) {
@@ -64,7 +68,7 @@ function setVariables(path, position) {
 	return path;
 }
 
-function resolve(path) {
+function resolve(path, options) {
 	var char1 = path.slice(0, 1);
 	var char2 = path.slice(0, 2);
 	if (char1 === ">") {
@@ -72,13 +76,9 @@ function resolve(path) {
 	} else if (char2 === ">/") {
 		path = currentWorkingDirectory(path.slice(2));
 	} else if (char2 === "~/") {
-		var trace = stackTrace.get();
-		var index = 0;
-		do {
-			var traceFileName = trace[index++].getFileName();
-		} while (__filename === traceFileName);
-		var fromDirectory = dirname(traceFileName);
-		path = packageDirectory(path.slice(2), fromDirectory);
+		path = packageDirectory(path.slice(2), options);
+	} else if (char2 === "//") {
+		path = appRootDirectory(path.slice(2));
 	}
 	path = setVariables(path);
 	return path;
