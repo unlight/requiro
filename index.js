@@ -2,106 +2,92 @@
 "use strict";
 var assert = require("assert").ok;
 var join = require("path").join;
-//var dirname = require("path").dirname;
-//var fs = require("fs");
-var isString = require("util").isString || function isString(arg) {
-	return typeof arg === "string";
-};
-//var isObject = require("util").isObject || function isObject(arg) {
-//	return typeof arg === "object" && arg !== null;
-//};
-//var stackTrace = require("stack-trace");
-//var getvalue = require("getvaluer");
+var isString = require("util").isString;
+var pkgUp = require("pkg-up");
+var dirname = require("path").dirname;
+var pathjoin = require("path").join;
+var stackTrace = require("stack-trace");
 
 function currentWorkingDirectory(path) {
 	var result = join(process.cwd(), path);
 	return result;
 }
 
-//function projectHome(path) {
-//	throw "Not supported";
-//	// What is project home?
-//	return path;
-//}
-
-function setEnvironmentVariables(path) {
-	var nPos1 = path.indexOf("{%");
-	if (nPos1 !== -1) {
-		var nPos2 = path.indexOf("}", nPos1);
-		var name = path.substring(nPos1 + 2, nPos2);
+var variableParsers = {
+	"%": function(path, name) {
 		if (name.slice(-1) === "%") {
 			name = name.slice(0, -1);
 		}
-		var value = process.env[name];
-		if (value !== undefined) {
-			path = path.slice(0, nPos1) + value + path.slice(nPos2 + 1);
+		var result = process.env[name];
+		return result;
+	}
+};
+
+
+var _pkgDirectory = {};
+
+function packageDirectory(path, from) {
+	if (!_pkgDirectory[from]) {
+		_pkgDirectory[from] = dirname(pkgUp.sync(from));
+	}
+	return pathjoin(_pkgDirectory[from], path);
+}
+
+function setVariables(path, position) {
+	if (position === undefined) {
+		position = 0;
+	}
+	var nStart = path.indexOf("{", position);
+	var nEnd = path.lastIndexOf("}");
+	if (nStart !== -1 && nEnd !== -1) {
+		var nStart1 = nStart + 1;
+		var part = path.substring(nStart1, nEnd);
+		var st = part.indexOf("{");
+		var pe = part.lastIndexOf("}");
+		if (st < pe) {
+			part = setVariables(part, position);
+		} else if (st > pe) {
+			nEnd = pe + nStart1;
+			part = part.slice(0, pe);
 		}
-		// TODO: Uncomment if serveral env vars needed.
-		// nPos1 = path.indexOf("{%");
+		var symbol = part.slice(0, 1);
+		var parser = variableParsers[symbol];
+		if (!parser) {
+			throw new Error("Unsupported syntax.");
+		}
+		var value = parser(path, part.slice(1), nStart, nEnd);
+		if (value != null) {
+			path = path.slice(0, nStart) + value + path.slice(nEnd + 1);
+		}
+		path = setVariables(path, nStart1);
 	}
 	return path;
 }
 
-function resolveRoute(path) {
-	assert(isString(path), "path must be a string");
+function resolve(path) {
 	var char1 = path.slice(0, 1);
 	var char2 = path.slice(0, 2);
 	if (char1 === ">") {
 		path = currentWorkingDirectory(path.slice(1));
 	} else if (char2 === ">/") {
 		path = currentWorkingDirectory(path.slice(2));
-	} 
-//	else if (char1 === "#") {
-//		var value = arguments[1];
-//		var name = path.slice(1);
-//		return configuration(name, value);
-//	}
-	
-	//	else if (char1 === ":") {
-	//		throw "Not supported";
-	//		var trace = stackTrace.get(api);
-	//		var fromFile = trace[0].getFileName();
-	//		var fromDirectory = dirname(fromFile);
-	//	} else if (char2 === "~/") {
-	//		throw "Not supported";
-	//		path = projectHome(path.slice(2));
-	//	} else if (char2 === "//") {
-	//		throw "Not supported";
-	//	} else if (char2 === "/*") {
-	//		throw "Not supported";
-	//	}
-	path = setEnvironmentVariables(path);
+	} else if (char2 === "~/") {
+		var trace = stackTrace.get();
+		var index = 0;
+		do {
+			var traceFileName = trace[index++].getFileName();
+		} while (__filename === traceFileName);
+		var fromDirectory = dirname(traceFileName);
+		path = packageDirectory(path.slice(2), fromDirectory);
+	}
+	path = setVariables(path);
 	return path;
 }
 
-//var configurationData = {};
-
-//function configuration(name, value) {
-//	if (name === "" && isObject(value)) {
-//		var collection = value;
-//		for (var key in collection) {
-//			if (!collection.hasOwnProperty(key)) continue;
-//			setvalue(key, collection[key]);
-//		}
-//	} else if (isString(name)) {
-//		if (value !== undefined) {
-//			//configurationData[name] = value;
-//			setvalue();
-//			throw "Not supported.";			
-//		}
-//		var result = getvalue(name, configurationData);
-//		return result;		
-//	} else {
-//		throw TypeError("Unknown error.");
-//	}
-//}
-
-function api(path) {
-	path = resolveRoute(path);
+module.exports = function(path) {
+	assert(isString(path), "Path must be a string.");
+	path = resolve(path);
 	var result = require(path);
 	return result;
-}
-
-module.exports = api;
-module.exports._resolveRoute = resolveRoute;
- 
+};
+module.exports.resolve = resolve;

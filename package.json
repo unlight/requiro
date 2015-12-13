@@ -1,18 +1,19 @@
 {
   "name": "requiro",
-  "version": "1.0.0-a",
+  "version": "1.2.0",
   "description": "Advanced version of require for node.js",
   "main": "index.js",
   "scripts": {
     "test": "node test/main.js"
   },
-  "license": "X.Net",
   "devDependencies": {
-    "tapef": "~0.0.0",
-    "getvaluer": "~1.0.2",
-    "setvaluer": "~1.0.0-c",
-    "stack-trace": "~0.0.9"
+    "tapef": "~0.0.0"
   },
+  "dependencies": {
+    "pkg-up": "^1.0.0",
+    "stack-trace": "0.0.9"
+  },
+  "license": "Beerware",
   "directories": {
     "test": "test"
   },
