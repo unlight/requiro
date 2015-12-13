@@ -1,6 +1,6 @@
 {
   "name": "requiro",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Advanced version of require for node.js",
   "main": "index.js",
   "scripts": {
@@ -10,11 +10,10 @@
     "tapef": "~0.0.0"
   },
   "dependencies": {
-    "deepmerge": "^0.2.7",
-    "getvaluer": "^1.0.2",
-    "setvaluer": "^1.0.0-c"
+    "pkg-up": "^1.0.0",
+    "stack-trace": "0.0.9"
   },
-  "license": "X.Net",
+  "license": "Beerware",
   "directories": {
     "test": "test"
   },

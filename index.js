@@ -2,18 +2,11 @@
 "use strict";
 var assert = require("assert").ok;
 var join = require("path").join;
-var isString = require("util").isString || function isString(arg) {
-	return typeof arg === "string";
-};
-var isObject = require("util").isObject || function isObject(arg) {
-	return typeof arg === "object" && arg !== null;
-};
-var getvalue = require("getvaluer");
-var setvalue = require("setvaluer");
-var merge = require("deepmerge");
-//var stackTrace = require("stack-trace");
-//var dirname = require("path").dirname;
-//var fs = require("fs");
+var isString = require("util").isString;
+var pkgUp = require("pkg-up");
+var dirname = require("path").dirname;
+var pathjoin = require("path").join;
+var stackTrace = require("stack-trace");
 
 function currentWorkingDirectory(path) {
 	var result = join(process.cwd(), path);
@@ -21,18 +14,24 @@ function currentWorkingDirectory(path) {
 }
 
 var variableParsers = {
-	"%": function (path, name, nStart, nEnd) {
+	"%": function(path, name) {
 		if (name.slice(-1) === "%") {
 			name = name.slice(0, -1);
 		}
 		var result = process.env[name];
 		return result;
-	},
-//	"#": function (path, name, nStart, nEnd) {
-//		var result = config(name);
-//		return result;
-//	}
+	}
 };
+
+
+var _pkgDirectory = {};
+
+function packageDirectory(path, from) {
+	if (!_pkgDirectory[from]) {
+		_pkgDirectory[from] = dirname(pkgUp.sync(from));
+	}
+	return pathjoin(_pkgDirectory[from], path);
+}
 
 function setVariables(path, position) {
 	if (position === undefined) {
@@ -65,100 +64,30 @@ function setVariables(path, position) {
 	return path;
 }
 
-
-function resolveRoute(path) {
-	if (typeof settings.map[path] === "string") {
-		path = settings.map[path];
-	}
+function resolve(path) {
 	var char1 = path.slice(0, 1);
 	var char2 = path.slice(0, 2);
 	if (char1 === ">") {
 		path = currentWorkingDirectory(path.slice(1));
-	}
-	else if (char2 === ">/") {
+	} else if (char2 === ">/") {
 		path = currentWorkingDirectory(path.slice(2));
+	} else if (char2 === "~/") {
+		var trace = stackTrace.get();
+		var index = 0;
+		do {
+			var traceFileName = trace[index++].getFileName();
+		} while (__filename === traceFileName);
+		var fromDirectory = dirname(traceFileName);
+		path = packageDirectory(path.slice(2), fromDirectory);
 	}
-	//	else if (char1 === "#") {
-	//		var nPos1 = path.indexOf("/");
-	//		var name = path.slice(1, nPos1);
-	//		path = config(name) + path.slice(nPos1);
-	//	}
-	
-	//	else if (char1 === ":") {
-	//		throw "Not supported";
-	//		var trace = stackTrace.get(api);
-	//		var fromFile = trace[0].getFileName();
-	//		var fromDirectory = dirname(fromFile);
-	//	} else if (char2 === "~/") {
-	//		throw "Not supported";
-	//		path = projectHome(path.slice(2));
-	//	} else if (char2 === "//") {
-	//		throw "Not supported";
-	//	} else if (char2 === "/*") {
-	//		throw "Not supported";
-	//	}
 	path = setVariables(path);
 	return path;
 }
 
-var settings = {};
-settings.configuration = {};
-settings.map = {};
-
-//function config(name, value) {
-//	if (name === "" && isObject(value)) {
-//		var collection = value;
-//		for (var key in collection) {
-//			if (!collection.hasOwnProperty(key)) continue;
-//			setvalue(key, collection[key]);
-//		}
-//	} else if (isString(name)) {
-//		if (value !== undefined) {
-//			//configurationData[name] = value;
-//			setvalue();
-//			throw "Not supported.";
-//		}
-//		var result = getvalue(name, configuration);
-//		return result;
-//	} else {
-//		throw TypeError("Unknown error.");
-//	}
-//}
-
-function api1(path) {
+module.exports = function(path) {
 	assert(isString(path), "Path must be a string.");
-	path = resolveRoute(path);
+	path = resolve(path);
 	var result = require(path);
 	return result;
-}
-
-function api2(data) {
-	settings = merge(settings, data);
-	return api1;
-}
-
-var api3 = {
-	map: function (data, value) {
-		if (isObject(data)) {
-			settings.map = merge(settings.map, data);
-		} else if (isString(data) && isString(value)) {
-			settings.map[data] = value;
-		}
-		return this;
-	}
-//	,
-//	configuration: function (data) {
-//		settings.configuration = merge(settings.configuration, data);
-//	}
 };
-
-
-module.exports = function (data) {
-	if (arguments.length === 0) {
-		return api3;
-	} else if (isObject(data)) {
-		return api2(data);
-	}
-	return api1(data);
-};
-module.exports._resolveRoute = resolveRoute;
+module.exports.resolve = resolve;
