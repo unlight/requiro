@@ -1,4 +1,3 @@
-/// <reference path="../typings/node/node.d.ts"/>
 var test = require("tapef");
 var r = require("../");
 var rr = r.resolve;
@@ -30,8 +29,14 @@ test("multiple env variables", function(t) {
 	t.end();
 });
 
-test("project home", function(t) {
-	var pkgDir = dirname(__dirname);
-	t.equal(rr("~/a/b/c.js"), pathjoin(pkgDir, "a/b/c.js"));
+test("package root", function(t) {
+	var a1 = require(__dirname + "/fixtures/package_root/a/1");
+	t.equal(a1, "b");
+	t.end();
+});
+
+test("project root", function(t) {
+	var projectRoot = rr("//a");
+	t.ok(projectRoot);
 	t.end();
 });

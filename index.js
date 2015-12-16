@@ -25,6 +25,7 @@ var variableParsers = {
 
 
 var _appRootDirectory;
+
 function appRootDirectory(path) {
 	if (!_appRootDirectory) {
 		_appRootDirectory = appRootDir.get();
@@ -32,9 +33,24 @@ function appRootDirectory(path) {
 	return pathjoin(_appRootDirectory, path);
 }
 
-function packageDirectory(path, options) {
-	var pkgDirectory = dirname(pkgUp.sync(options.filedir));
-	return pathjoin(pkgDirectory, path);
+var _packageDirectory = {};
+
+function packageDirectory(path) {
+	if (!_packageDirectory[path]) {
+		var trace = stackTrace.get();
+		var filename;
+		var index = 1;
+		do {
+			var testFilename = trace[index++].getFileName();
+			if (testFilename !== __filename) {
+				filename = testFilename;
+			}
+		} while (!filename);
+		var filedir = dirname(filename);
+		var pkgDirectory = dirname(pkgUp.sync(filedir));
+		_packageDirectory[path] = pkgDirectory;
+	}
+	return pathjoin(_packageDirectory[path], path);
 }
 
 function setVariables(path, position) {
@@ -68,7 +84,7 @@ function setVariables(path, position) {
 	return path;
 }
 
-function resolve(path, options) {
+function resolve(path) {
 	var char1 = path.slice(0, 1);
 	var char2 = path.slice(0, 2);
 	if (char1 === ">") {
@@ -76,7 +92,7 @@ function resolve(path, options) {
 	} else if (char2 === ">/") {
 		path = currentWorkingDirectory(path.slice(2));
 	} else if (char2 === "~/") {
-		path = packageDirectory(path.slice(2), options);
+		path = packageDirectory(path.slice(2));
 	} else if (char2 === "//") {
 		path = appRootDirectory(path.slice(2));
 	}
@@ -87,7 +103,6 @@ function resolve(path, options) {
 module.exports = function(path) {
 	assert(isString(path), "Path must be a string.");
 	path = resolve(path);
-	var result = require(path);
-	return result;
+	return require(path);
 };
 module.exports.resolve = resolve;
