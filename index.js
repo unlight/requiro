@@ -35,18 +35,22 @@ function appRootDirectory(path) {
 
 var _packageDirectory = {};
 
-function packageDirectory(path) {
+function packageDirectory(path, options) {
+	if (!options) options = {};
 	if (!_packageDirectory[path]) {
-		var trace = stackTrace.get();
-		var filename;
-		var index = 1;
-		do {
-			var testFilename = trace[index++].getFileName();
-			if (testFilename !== __filename) {
-				filename = testFilename;
-			}
-		} while (!filename);
-		var filedir = dirname(filename);
+		var filedir = options.filedir;
+		if (!filedir) {
+			var trace = stackTrace.get();
+			var filename;
+			var index = 1;
+			do {
+				var testFilename = trace[index++].getFileName();
+				if (testFilename !== __filename) {
+					filename = testFilename;
+				}
+			} while (!filename);
+			filedir = dirname(filename);
+		}
 		var pkgDirectory = dirname(pkgUp.sync(filedir));
 		_packageDirectory[path] = pkgDirectory;
 	}
@@ -84,7 +88,7 @@ function setVariables(path, position) {
 	return path;
 }
 
-function resolve(path) {
+function resolve(path, options) {
 	var char1 = path.slice(0, 1);
 	var char2 = path.slice(0, 2);
 	if (char1 === ">") {
@@ -92,7 +96,7 @@ function resolve(path) {
 	} else if (char2 === ">/") {
 		path = currentWorkingDirectory(path.slice(2));
 	} else if (char2 === "~/") {
-		path = packageDirectory(path.slice(2));
+		path = packageDirectory(path.slice(2), options);
 	} else if (char2 === "//") {
 		path = appRootDirectory(path.slice(2));
 	}
