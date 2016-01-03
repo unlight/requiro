@@ -7,6 +7,7 @@ var dirname = require("path").dirname;
 var appRootDir = require("app-root-dir");
 var stackTrace = require("stack-trace");
 var pkgUp = require("pkg-up");
+var pathrelative = require("path").relative;
 
 function currentWorkingDirectory(path) {
 	var result = join(process.cwd(), path);
@@ -36,8 +37,13 @@ function appRootDirectory(path) {
 var _packageDirectory = {};
 
 function packageDirectory(path, options) {
-	if (!options) options = {};
-	if (!_packageDirectory[path]) {
+	var key = path;
+	if (options) {
+		key += "__" + JSON.stringify(options);
+	} else {
+		options = {};
+	}
+	if (!_packageDirectory[key]) {
 		var filedir = options.filedir;
 		if (!filedir) {
 			var trace = stackTrace.get();
@@ -52,9 +58,12 @@ function packageDirectory(path, options) {
 			filedir = dirname(filename);
 		}
 		var pkgDirectory = dirname(pkgUp.sync(filedir));
-		_packageDirectory[path] = pkgDirectory;
+		if (options.relative) {
+			pkgDirectory = "./" + pathrelative(filedir, pkgDirectory);
+		}
+		_packageDirectory[key] = pkgDirectory;
 	}
-	return pathjoin(_packageDirectory[path], path);
+	return pathjoin(_packageDirectory[key], path);
 }
 
 function setVariables(path, position) {

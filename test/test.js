@@ -4,6 +4,7 @@ var rr = r.resolve;
 var pathResolve = require("path").resolve;
 var dirname = require("path").dirname;
 var pathjoin = require("path").join;
+var path = require("path");
 
 test("rr must be function", function(t) {
 	t.equal(typeof rr, "function");
@@ -32,6 +33,13 @@ test("multiple env variables", function(t) {
 test("package root", function(t) {
 	var a1 = require(__dirname + "/fixtures/package_root/a/1");
 	t.equal(a1, "b");
+	t.end();
+});
+
+test("explicit package root", function(t) {
+	var filedir = __dirname + "/fixtures/package_root/a";
+	var result = rr("~/b", {filedir: filedir, relative: true});
+	t.equal(result, ".." + path.sep + "b");
 	t.end();
 });
 
