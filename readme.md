@@ -24,15 +24,17 @@ Symbols                  | Resolves to               | Example                  
 `~/`                     | Closest directory with package.json      |  `require("~/app/library")` |
 `//`                     | Project root              |  `require("//app/models/car")` |
 
+
+RELATED STUFF
+-------------
+* Better local require() paths for Node.js - https://gist.github.com/branneman/8048520
+* https://github.com/MattiSG/requirewith
+* https://github.com/jaubourg/wires
+
 TODO
 ----
 1. Need put config somewhere
 2. Multiple environment variables
-
-INSPIRED BY
------------
-https://github.com/MattiSG/requirewith  
-https://github.com/jaubourg/wires  
 
 CHANGELOG
 ---------
