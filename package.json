@@ -1,17 +1,18 @@
 {
   "name": "requiro",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Advanced version of require for node.js",
   "main": "index.js",
   "scripts": {
-    "test": "node test/main.js"
+    "test": "node test/test.js"
   },
   "devDependencies": {
     "tapef": "~0.0.0"
   },
   "dependencies": {
+    "app-root-dir": "^1.0.2",
     "pkg-up": "^1.0.0",
-    "app-root-dir": "^1.0.2"
+    "stack-trace": "0.0.9"
   },
   "license": "Beerware",
   "directories": {
