@@ -1,5 +1,7 @@
 requiro
 =======
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/unlight/requiro.svg)](https://greenkeeper.io/)
 Advanced version of require for node.js.
 
 INSTALL
